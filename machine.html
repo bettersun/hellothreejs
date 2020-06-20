@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        body { margin: 0; cursor: pointer;}
+        canvas { width: 100%; height: 100%; cursor: pointer;}
+        div { cursor: pointer; }
+        .div-a{ position:absolute; left:20px; top:50px; background:transparent; width:320px; height:100px; z-index:120}
+    </style>
+</head>
+<body>
+    <div class="div-a">点击屏幕（或按下空格） 正向/反向 运转<br>停止时点击屏幕（或按下空格）可重新运转</div>
+    <script src="js/three.min.js"></script>
+    <script src="libs/three/controls/OrbitControls.js"></script>
+    <script src="libs/other/ThreeBSP.js"></script>
+    <script>
+    
+        var scene;
+        var camera;
+        var renderer;
+
+        // 地面位置（Y轴）
+        var pyGround = -8;
+        // 地面厚度
+        var yGround = 5;
+
+        // 场景
+        function initScene(){
+            scene = new THREE.Scene();
+
+            scene.background = new THREE.Color( 0xcce0ff );
+            scene.fog = new THREE.Fog( 0xcce0ff, 500, 800 );
+
+            // var axis = new THREE.AxisHelper(60);
+            // scene.add(axis);
+        }
+ 
+        function updateControls() {
+            controls.update();
+        }
+        
+        // 摄像机
+        function initCamera(){
+            camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            
+            camera.position.x = 50;
+            camera.position.y = 30;
+            camera.position.z = 50;
+            camera.lookAt({x:0,y:0,z:0});
+            controls = new THREE.OrbitControls( camera );
+            controls.addEventListener( 'change', updateControls );
+        }
+ 
+        // 渲染器
+        function initRender(){
+            renderer = new THREE.WebGLRenderer({antialias: true});
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
+            renderer.setClearColor(0xFFFFFF, 1.0);
+        }
+        
+        // var light;
+        function initLight() {
+            // add subtle ambient lighting
+            var ambienLight = new THREE.AmbientLight(0x353535);
+            ambienLight.position.set(60, 20, 50);
+            ambienLight.distance = 50;
+            ambienLight.intensity = 1;
+            ambienLight.visible = true;
+            scene.add(ambienLight);
+
+            var pointColor = "#CCFFCC";
+            var pointLight = new THREE.PointLight(pointColor);
+            pointLight.position.set(50, 50, 50);
+            pointLight.intensity = 0.5;
+            scene.add(pointLight);
+            
+            var pointLight2 = new THREE.PointLight(pointColor);
+            pointLight2.position.set(-50, 50, 50);
+            pointLight2.intensity = 0.5;
+            scene.add(pointLight2);
+
+            // var pointLight3 = new THREE.PointLight(pointColor);
+            // pointLight3.position.set(0, 0, 25);
+            // pointLight3.intensity = 1.0;
+            // scene.add(pointLight3);
+
+            var light = new THREE.DirectionalLight( 0xdfebff, 1 );
+            light.position.set( 50, 200, 100 );
+            light.position.multiplyScalar( 1.3 );
+            light.castShadow = true;
+            light.shadow.mapSize.width = 1024;
+            light.shadow.mapSize.height = 1024;
+            var d = 300;
+            light.shadow.camera.left = - d;
+            light.shadow.camera.right = d;
+            light.shadow.camera.top = d;
+            light.shadow.camera.bottom = - d;
+            light.shadow.camera.far = 1000;
+            scene.add( light );
+            
+            // 
+            var light2 = new THREE.DirectionalLight( 0xdfebff, 1 );
+            light2.position.set( 0, -50, -100 );
+            light2.position.multiplyScalar( 1.3 );
+            light2.castShadow = true;
+            light2.shadow.mapSize.width = 1024;
+            light2.shadow.mapSize.height = 1024;
+            var d = 300;
+            light2.shadow.camera.left = - d;
+            light2.shadow.camera.right = d;
+            light2.shadow.camera.top = d;
+            light2.shadow.camera.bottom = - d;
+            light2.shadow.camera.far = 1000;
+            scene.add( light2 );
+        }
+ 
+        // 添加物体
+        function initObject(){
+            // 地面
+            initGround();
+            // 矿井
+            // initWell();
+            // 电动机
+            initMotor();
+            // 传动机 连接发动机的机器
+            initMachineA();
+            // 绞轮
+            initMachineB();
+            // 连接绞轮的机器
+            initMachineC();
+            // 双轮
+            initMachineD();
+            // 支架
+            initShelf();
+            // 矿车
+            initCar();
+            // 钢丝绳
+            initLine();
+        }
+
+        // 电动机
+        var meshMachineAxle;
+        function initMotor() {
+
+            var segment = 20;
+            var xOffset = 41.5;
+            var yOffset = 0;
+            var zOffset = 0;
+
+            // 电动机 机身1
+            var mtlMotor = new THREE.MeshPhongMaterial({ color: '#008080'});
+            var rMotorBody = 3;
+            var hMotorBody = 5;
+            var cyBB = new THREE.CylinderGeometry(rMotorBody, rMotorBody, hMotorBody, segment);
+            var meshBB = new THREE.Mesh(cyBB, mtlMotor);
+            meshBB.position.x = xOffset;
+            meshBB.rotation.z += 0.5*Math.PI;
+            scene.add(meshBB);
+            
+            // 电动机 机身2
+            var rMotorBody2 = rMotorBody + 0.5;
+            var hMotorBody2 = hMotorBody - 1;
+            var cyBB2 = new THREE.CylinderGeometry(rMotorBody2, rMotorBody2, hMotorBody2, segment);
+            var meshBB2 = new THREE.Mesh(cyBB2, mtlMotor);
+            meshBB2.position.x = xOffset;
+            meshBB2.rotation.z += 0.5*Math.PI;
+            scene.add(meshBB2);
+
+            // 圆弧部半径
+            var rTorusTube = 0.5;
+            var rAxle = 0.5;
+            // 电动机机身单侧圆弧部1
+            var lenA2 = 1;
+            var rTorusA2 = rMotorBody - rTorusTube;
+            var meshA2 = initMotorPartA(lenA2, rTorusA2, rTorusTube, rAxle, segment);
+            meshA2.position.x = meshBB.position.x + (hMotorBody / 2 + lenA2);
+            scene.add(meshA2);
+            // 电动机机身单侧圆弧部2
+            var meshA3 = initMotorPartA(lenA2, rTorusA2, rTorusTube, rAxle, segment);
+            meshA3.position.x = meshBB.position.x - (hMotorBody / 2 + lenA2);
+            meshA3.rotation.y = 0.5 * 2 * Math.PI;
+            scene.add(meshA3);
+            // 电动机尾部
+            var lenA1 = 2;
+            var rTorus = 1;
+            var meshA1 = initMotorPartA(lenA1, rTorus, rTorusTube, 0, segment);            
+            meshA1.position.x = meshBB.position.x + hMotorBody / 2 + lenA1 + rTorusTube;
+            scene.add(meshA1);
+
+            // 支架
+            var mtlSupport = new THREE.MeshPhongMaterial({ color: '#708090'});            
+            var ySupport = 2;
+            var xSupportA = hMotorBody;
+            var zSupportA = xSupportA * 2;
+            var boxSupportA = new THREE.BoxGeometry(xSupportA, ySupport, zSupportA);
+            var meshSupportA = new THREE.Mesh(boxSupportA, mtlSupport);
+            meshSupportA.position.y = - rMotorBody;
+            meshSupportA.position.x = xOffset;
+            scene.add( meshSupportA );
+            
+            // 电动机轴
+            var lenAxle = 30;
+            var mtlAxle = new THREE.MeshPhongMaterial({ color: '#87CEEB'});
+            var cyAxle = new THREE.CylinderGeometry(rAxle, rAxle, lenAxle, 20);
+            meshMachineAxle = new THREE.Mesh(cyAxle, mtlAxle);
+            meshMachineAxle.position.x = meshBB.position.x - lenAxle / 2;
+            meshMachineAxle.rotation.z += 0.5*Math.PI;
+            scene.add(meshMachineAxle);
+
+        }
+
+        // 电动机部分
+        function initMotorPartA(lenPart1, rTorusCC, rTorusTubeCC, rAxle, segment){
+
+            if (!segment) {
+                segment = 20;
+            }
+            var mtlMotor = new THREE.MeshPhongMaterial({ color: '#008080'});
+            var rPart1 = rTorusTubeCC + rTorusCC
+
+            // 顶部中心圆
+            var cyBB = new THREE.CylinderGeometry(rTorusCC, rTorusCC, 2*rTorusTubeCC, segment);
+            var meshBB = new THREE.Mesh(cyBB);
+            // meshBB.position.x = 40;
+            meshBB.rotation.z += 0.5*Math.PI;
+
+            // 顶部边缘管体
+            var torusCC = new THREE.TorusGeometry(rTorusCC, rTorusTubeCC, segment, segment);
+            var meshCC = new THREE.Mesh(torusCC);
+            // meshCC.position.x = meshBB.position.x;
+            meshCC.rotation.y += 0.5*Math.PI;
+
+            // 主体圆柱
+            var cyDD = new THREE.CylinderGeometry(rPart1, rPart1, lenPart1, segment, segment);
+            var meshDD = new THREE.Mesh(cyDD);
+            meshDD.position.x = meshCC.position.x - (lenPart1/2);
+            meshDD.rotation.z += 0.5*Math.PI;
+            
+            // 中心轴孔
+            var cyAxle = new THREE.CylinderGeometry(rAxle, rAxle, lenPart1 + 2 * rTorusTubeCC, segment);
+            var meshAxle = new THREE.Mesh(cyAxle);
+            meshAxle.position.x = meshDD.position.x;
+            meshAxle.rotation.z += 0.5*Math.PI;
+
+            var bspBB = new ThreeBSP(meshBB);
+            var bspCC = new ThreeBSP(meshCC);
+            var bspDD = new ThreeBSP(meshDD);
+            var bspAxle= new ThreeBSP(meshAxle);
+            var bspCombine = bspBB.union(bspCC).union(bspDD).subtract(bspAxle);
+            mesh = bspCombine.toMesh(mtlMotor);
+            return mesh;
+        }
+
+        // 矿井
+        function initWell() {
+
+            // 地面位置
+            var yGround = pyGround;
+            var zGround = 150;
+            // 矿井
+            var widthWell = 32;
+            var heihtWell = 100;
+            var boxWell = new THREE.BoxGeometry(widthWell, heihtWell, widthWell);
+            var meshWell = new THREE.Mesh(boxWell);
+
+            var lengthInnerWell = 31;
+            var widthInnerWell = 30;
+            var boxInnerWell = new THREE.BoxGeometry(lengthInnerWell, heihtWell, widthInnerWell);
+            var meshInnerWell = new THREE.Mesh(boxInnerWell);
+            meshInnerWell.position.z = meshWell.position.z - 1;
+
+            var bspWell = new ThreeBSP(meshWell);
+            var bspInnerWell = new ThreeBSP(meshInnerWell);
+            var mtlCarWheel = new THREE.MeshPhongMaterial({ color: '#2F4F4F'});
+            var bspWheelOne = bspWell.subtract(bspInnerWell);
+            meshWheelOne = bspWheelOne.toMesh(mtlCarWheel);
+            meshWheelOne.position.y = - (heihtWell / 2) + pyGround + yGround / 2 + 2;
+            meshWheelOne.position.z = - (zGround + widthWell) / 2 + 26;
+
+            scene.add( meshWheelOne );
+        }
+
+        // 地面
+        function initGround() {
+
+            var segment = 50;
+
+            // ground
+            var loader = new THREE.TextureLoader();
+            var textureGround = loader.load( 'textures/floors/cement.png' );
+            textureGround.wrapS = textureGround.wrapT = THREE.RepeatWrapping;
+            textureGround.repeat.set( 1, 1 );
+            textureGround.anisotropy = 16;
+
+            var mtlGround = new THREE.MeshPhongMaterial( { map: textureGround } );
+
+            var xGround = 120;
+            var zGround = 110;
+            var boxGround = new THREE.BoxGeometry(xGround, yGround, zGround);
+            var meshGround = new THREE.Mesh(boxGround);
+            // 地面 位置
+            meshGround.position.y = pyGround;
+            meshGround.position.z = 4;
+            meshGround.position.x = 15;
+            // scene.add( meshGround );
+            
+            // 绞轮洞
+            var rMachineBHole = 19;
+            var hMachineB1A = 20;   // 绞轮一半的长度
+            var sideSpace = 1;
+            var hMachineBHole = hMachineB1A * 2 + sideSpace * 2;
+            var cyMachineBHole = new THREE.CylinderGeometry(rMachineBHole, rMachineBHole, hMachineBHole, segment);
+            var meshMachineBHole = new THREE.Mesh(cyMachineBHole);
+            meshMachineBHole.rotation.z = 0.25 * 2 * Math.PI;
+            // meshMachineBHole.position.x = - ((hMachineB1A + hMachineB1A / 2) / 2) + 5;
+            // scene.add( meshMachineBHole );
+            
+            var bspGround = new ThreeBSP(meshGround);
+            var bspMachineBHole= new ThreeBSP(meshMachineBHole);
+            bspGround = bspGround.subtract(bspMachineBHole);
+            var meshG = bspGround.toMesh(mtlGround);
+            scene.add( meshG );
+        }
+
+        // 传动机
+        function initMachineA() {
+            
+            var xOffset = 32;
+            var segment = 50;
+            var mtlMachineA = new THREE.MeshPhongMaterial({ color: '#006666'});
+            
+            // 传动机 中间圆柱
+            var rMachineA1 = 6;
+            var hMachineA = 5;
+            var cyMachineA1 = new THREE.CylinderGeometry(rMachineA1, rMachineA1, hMachineA, segment);
+            var meshMachineA1 = new THREE.Mesh(cyMachineA1, mtlMachineA);
+            // scene.add( meshMachineA1 );
+
+            // 传动机 单侧圆台
+            var mtlMachineA2 = new THREE.MeshPhongMaterial({ color: '#009999'});
+            var rMachineA2T = rMachineA1;
+            var rMachineA2B = rMachineA2T - 3;
+            var hMachineA2 = 1.5;
+            // 传动机 单侧圆台1
+            var cyMachineA2 = new THREE.CylinderGeometry(rMachineA2T, rMachineA2B, hMachineA2, segment);
+            var meshMachineA2 = new THREE.Mesh(cyMachineA2, mtlMachineA2);
+            meshMachineA2.position.y = - (hMachineA + hMachineA2) / 2;
+            // scene.add( meshMachineA2 );
+            
+            // 传动机 单侧圆台2
+            var cyMachineA3 = new THREE.CylinderGeometry(rMachineA2B, rMachineA2T, hMachineA2, segment);
+            var meshMachineA3 = new THREE.Mesh(cyMachineA3, mtlMachineA2);
+            meshMachineA3.position.y = (hMachineA + hMachineA2) / 2;
+            // scene.add( meshMachineA3 );
+            
+            // 传动机 底座
+            var xMachineA4 = rMachineA1;
+            var yMachineA4 = hMachineA;
+            var zMachineA4 = rMachineA1 * 2;
+            var boxMachineA4 = new THREE.BoxGeometry(xMachineA4, yMachineA4, zMachineA4);
+            var meshMachineA4 = new THREE.Mesh(boxMachineA4);
+            meshMachineA4.position.x = - xMachineA4 / 2;
+            // scene.add( meshMachineA4 );
+
+            // 传动机
+            var bspMachineA1 = new ThreeBSP(meshMachineA1);
+            var bspMachineA2 = new ThreeBSP(meshMachineA2);
+            var bspMachineA3 = new ThreeBSP(meshMachineA3);
+            var bspMachineA4 = new ThreeBSP(meshMachineA4);
+            var bspMachineA = bspMachineA1.union(bspMachineA2).union(bspMachineA3).union(bspMachineA4);
+            machineA = bspMachineA.toMesh(mtlMachineA);
+            machineA.rotation.z = 0.25 * 2 * Math.PI;
+            machineA.position.x = xOffset;
+            scene.add( machineA );
+        }
+
+        // 绞轮
+        var machineB1;
+        var meshMachineBAxle;
+        var machineB1DE1;
+        var machineB1DE2;
+        // 绞轮1 半径
+        var rMachineB1A = 15;
+        var rMachineBLine = 16;
+        function initMachineB() {
+            
+            var segment = 50;
+            var mtlMachineB = new THREE.MeshPhongMaterial({ color: '#666666'});
+            
+            // 绞轮1
+            var hMachineB1A = 40;
+            var cyMachineB1A = new THREE.CylinderGeometry(rMachineB1A, rMachineB1A, hMachineB1A, segment);
+            var meshMachineB1A = new THREE.Mesh(cyMachineB1A, mtlMachineB);
+            // scene.add( meshMachineB1A );
+            
+            // 绞轮钢丝绳（假）
+            var mtlLine = new THREE.MeshPhongMaterial({ color: '#000000'});
+            rMachineBLine = 16;
+            var hMachineBLine = 39;
+            var cyMachineBLine = new THREE.CylinderGeometry(rMachineBLine, rMachineBLine, hMachineBLine, segment, segment, true);
+            var meshMachineBLine = new THREE.Mesh(cyMachineBLine, mtlLine);
+            meshMachineBLine.rotation.z = 0.25 * 2 * Math.PI;
+            scene.add( meshMachineBLine );
+
+            // 绞轮 中间翼
+            var rMachineB1A0 = 18;
+            var hMachineB1A0 = 1;
+            var cyMachineB1A0 = new THREE.CylinderGeometry(rMachineB1A0, rMachineB1A0, hMachineB1A0, segment);
+            var meshMachineB1A0 = new THREE.Mesh(cyMachineB1A0, mtlMachineB);
+            // meshMachineB1A0.position.y = - hMachineB1A / 2;
+            // scene.add( meshMachineB1A0 );
+            
+            // 绞轮 侧面洞
+            var mtlMachineB1B = new THREE.MeshPhongMaterial({ color: '#006666'});
+            var rMachineB1BT = 13;
+            var rMachineB1BB = 10;
+            var hMachineB1B = 5;
+            var cyMachineB1B1 = new THREE.CylinderGeometry(rMachineB1BT, rMachineB1BB, hMachineB1B, segment);
+            var meshMachineB1B1 = new THREE.Mesh(cyMachineB1B1, mtlMachineB1B);
+            meshMachineB1B1.position.y = (hMachineB1A - hMachineB1B) / 2;
+            // scene.add( meshMachineB1B1 );
+            var cyMachineB1B2 = new THREE.CylinderGeometry(rMachineB1BB, rMachineB1BT, hMachineB1B, segment);
+            var meshMachineB1B2 = new THREE.Mesh(cyMachineB1B2, mtlMachineB1B);
+            meshMachineB1B2.position.y = - (hMachineB1A - hMachineB1B) / 2;
+            
+            // 绞轮 侧面翼
+            var mtlMachineB1C = new THREE.MeshPhongMaterial({ color: '#006699'});
+            var rMachineB1C = 18;
+            var hMachineB1C = 1;
+            var cyMachineB1C = new THREE.CylinderGeometry(rMachineB1C, rMachineB1C, hMachineB1C, segment);
+            var meshMachineB1C1 = new THREE.Mesh(cyMachineB1C, mtlMachineB1C);
+            meshMachineB1C1.position.y = (hMachineB1A - hMachineB1C) / 2;
+            // scene.add( meshMachineB1C1 );
+            var meshMachineB1C2 = new THREE.Mesh(cyMachineB1C, mtlMachineB1C);
+            meshMachineB1C2.position.y = - (hMachineB1A - hMachineB1C) / 2;
+            // scene.add( meshMachineB1C2 );
+
+            // 绞轮 侧面洞内圈
+            var mtlMachineB1DE = new THREE.MeshPhongMaterial({ color: '#333333'});
+            var rMachineB1D = 6;
+            var hMachineB1D = 0.1;
+            var cyMachineB1D = new THREE.CylinderGeometry(rMachineB1D, rMachineB1D, hMachineB1D, segment);
+            var meshMachineB1D = new THREE.Mesh(cyMachineB1D);
+            var rMachineB1E = 3;
+            var hMachineB1E = 0.1;
+            var cyMachineB1E = new THREE.CylinderGeometry(rMachineB1E, rMachineB1E, hMachineB1D, segment);
+            var meshMachineB1E = new THREE.Mesh(cyMachineB1E);
+            var bspMachineB1D = new ThreeBSP(meshMachineB1D);
+            var bspMachineB1E = new ThreeBSP(meshMachineB1E);
+            var bspMachineB1DE = bspMachineB1D.subtract(bspMachineB1E);
+            // 绞轮 侧面洞内圈1
+            machineB1DE1 = bspMachineB1DE.toMesh(mtlMachineB1DE);
+            machineB1DE1.rotation.z = 0.25 * 2 * Math.PI;
+            machineB1DE1.position.x = hMachineB1A / 2 - hMachineB1B + hMachineB1D / 2;
+            scene.add( machineB1DE1 );
+            // 绞轮 侧面洞内圈2
+            machineB1DE2 = bspMachineB1DE.toMesh(mtlMachineB1DE);
+            machineB1DE2.rotation.z = 0.25 * 2 * Math.PI;
+            machineB1DE2.position.x = - (hMachineB1A / 2 - hMachineB1B + hMachineB1D / 2);
+            scene.add( machineB1DE2 );
+            
+            // 绞轮体
+            var bspMachineB1A = new ThreeBSP(meshMachineB1A);
+            var bspMachineB1A0= new ThreeBSP(meshMachineB1A0);
+            var bspMachineB1C1 = new ThreeBSP(meshMachineB1C1);
+            var bspMachineB1C2 = new ThreeBSP(meshMachineB1C2);
+            var bspMachineB1D = new ThreeBSP(meshMachineB1D);
+            var bspMachineB1B1 = new ThreeBSP(meshMachineB1B1);
+            var bspMachineB1B2 = new ThreeBSP(meshMachineB1B2);
+            var bspMachineB1 = bspMachineB1A.union(bspMachineB1A0).union(bspMachineB1C1).union(bspMachineB1C2).union(bspMachineB1D).subtract(bspMachineB1B1).subtract(bspMachineB1B2);
+            machineB1 = bspMachineB1.toMesh(mtlMachineB);
+            machineB1.rotation.z = - 0.25 * 2 * Math.PI;
+            scene.add( machineB1 );
+
+            // 绞轮 中轴
+            var mtlMachineBAxle = new THREE.MeshPhongMaterial({ color: '#333333'});
+            var rMachineBAxle = 2;
+            var hMachineBAxle = hMachineB1A + 12;
+            var cyMachineBAxle = new THREE.CylinderGeometry(rMachineBAxle, rMachineBAxle, hMachineBAxle, segment);
+            meshMachineBAxle = new THREE.Mesh(cyMachineBAxle, mtlMachineBAxle);
+            meshMachineBAxle.rotation.z = 0.25 * 2 * Math.PI;
+            // meshMachineBAxle.position.x = - ((hMachineB1A + hMachineB1A / 2) / 2) + 5;
+            scene.add( meshMachineBAxle );
+            
+            // 绞轮 支架
+            var mtlSupport = new THREE.MeshPhongMaterial({ color: '#708090'});
+            // 绞轮 支撑柱
+            var xSupportC1 = 4;
+            var ySupportC1 = 4;
+            var zSupportC1 = 6;
+            var boxSupportC1 = new THREE.BoxGeometry(xSupportC1, ySupportC1, zSupportC1);
+            var meshSupportC1 = new THREE.Mesh(boxSupportC1);
+            // scene.add( meshSupportC1 );
+            // 中轴套
+            var rAxleOuter = zSupportC1 / 2;
+            var hAxleOuter = xSupportC1;
+            var cyAxleOuter = new THREE.CylinderGeometry(rAxleOuter, rAxleOuter, hAxleOuter, segment);
+            var meshAxleOuter = new THREE.Mesh(cyAxleOuter);
+            meshAxleOuter.rotation.z = 0.25 * 2 * Math.PI;
+            meshAxleOuter.position.y = ySupportC1 / 2;
+            // scene.add( meshAxleOuter );
+            // 绞轮 底座
+            var ySupport = hAxleOuter;
+            var xSupportC2 = xSupportC1;
+            var zSupportC2 = 20;
+            var boxSupportC2 = new THREE.BoxGeometry(xSupportC2, ySupport, zSupportC2);
+            var meshSupportC2 = new THREE.Mesh(boxSupportC2);
+            meshSupportC2.position.y = - (ySupportC1 / 2 + ySupport / 2);
+            // scene.add( meshSupportC2 );
+            // 绞轮 支架整体
+            var bspSupportC1 = new ThreeBSP(meshSupportC1);
+            var bspAxleOuter = new ThreeBSP(meshAxleOuter);
+            var bspSupportC2= new ThreeBSP(meshSupportC2);
+            var bspSupportC = bspSupportC1.union(bspAxleOuter).union(bspSupportC2);
+            // 绞轮 支架1
+            var meshSupportC = bspSupportC.toMesh(mtlSupport);
+            meshSupportC.position.y = - (ySupportC1 / 2);
+            meshSupportC.position.x = hMachineBAxle / 2 - xSupportC1 / 2 - 0.1;
+            scene.add( meshSupportC );
+            // 绞轮 支架2
+            var meshSupportC = bspSupportC.toMesh(mtlSupport);
+            meshSupportC.position.y = - (ySupportC1 / 2);
+            meshSupportC.position.x = - (hMachineBAxle / 2 - xSupportC1 / 2) + 0.1;
+            scene.add( meshSupportC );
+            
+            // 绞轮 刹车1111
+            var mtlBreakA = new THREE.MeshPhongMaterial({ color: '#006633'});
+            // 绞轮 刹车架
+            var xBreakA = 1;
+            var yBreakA = 6;
+            var zBreakA = 2;
+            var boxBreakA = new THREE.BoxGeometry(xBreakA, yBreakA, zBreakA);
+            var meshBreakA = new THREE.Mesh(boxBreakA, mtlBreakA);
+            meshBreakA.position.x = hMachineB1A / 2 - xBreakA / 2;
+            meshBreakA.position.z = rMachineB1C + zBreakA / 2 + 0.1;
+            scene.add( meshBreakA );
+            // 绞轮 刹车架
+            var xBreakA2 = 1;
+            var yBreakA2 = 8;
+            var zBreakA2 = 3;
+            var boxBreakA2 = new THREE.BoxGeometry(xBreakA2, yBreakA2, zBreakA2);
+            var meshBreakA2 = new THREE.Mesh(boxBreakA2, mtlBreakA);
+            meshBreakA2.position.x = hMachineB1A / 2 - xBreakA / 2;
+            meshBreakA2.position.z = rMachineB1C + zBreakA / 2 + (zBreakA2 - zBreakA) / 2  + 0.1;
+            meshBreakA2.position.y = - yBreakA2 / 2;
+            scene.add( meshBreakA2 );
+
+            // 绞轮 刹车片
+            var mtlBreakB = new THREE.MeshPhongMaterial({ color: '#333333'});
+            var rBreakB = 1;
+            var hBreakB = 0.2;
+            var cyBreakB = new THREE.CylinderGeometry(rBreakB, rBreakB, hBreakB, segment);
+            
+            // 绞轮 刹车片1
+            var meshBreakB1 = new THREE.Mesh(cyBreakB, mtlBreakB);
+            meshBreakB1.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakB1.position.x = (xBreakA + hBreakB) / 2 + meshBreakA.position.x;
+            meshBreakB1.position.z = - zBreakA + meshBreakA.position.z;
+            meshBreakB1.position.y = rBreakB;
+            scene.add( meshBreakB1 );
+            // 绞轮 刹车片2
+            var meshBreakB2 = new THREE.Mesh(cyBreakB, mtlBreakB);
+            meshBreakB2.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakB2.position.x = - (xBreakA + hBreakB) / 2 + meshBreakA.position.x;
+            meshBreakB2.position.z = - zBreakA + meshBreakA.position.z;
+            meshBreakB2.position.y = rBreakB;
+            scene.add( meshBreakB2 );
+            // 绞轮 刹车片3
+            var meshBreakB3 = new THREE.Mesh(cyBreakB, mtlBreakB);
+            meshBreakB3.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakB3.position.x = (xBreakA + hBreakB) / 2 + meshBreakA.position.x;
+            meshBreakB3.position.z = - zBreakA + meshBreakA.position.z;
+            meshBreakB3.position.y = - rBreakB * 2;
+            scene.add( meshBreakB3 );
+            // 绞轮 刹车片4
+            var meshBreakB4 = new THREE.Mesh(cyBreakB, mtlBreakB);
+            meshBreakB4.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakB4.position.x = - (xBreakA + hBreakB) / 2 + meshBreakA.position.x;
+            meshBreakB4.position.z = - zBreakA + meshBreakA.position.z;
+            meshBreakB4.position.y = - rBreakB * 2;
+            scene.add( meshBreakB4 );
+            
+            // 绞轮 刹车222
+            var mtlBreakC = new THREE.MeshPhongMaterial({ color: '#006633'});
+            // 绞轮 刹车架
+            var xBreakC = 1;
+            var yBreakC = 6;
+            var zBreakC = 2;
+            var boxBreakC = new THREE.BoxGeometry(xBreakC, yBreakC, zBreakC);
+            var meshBreakC = new THREE.Mesh(boxBreakC, mtlBreakC);
+            meshBreakC.position.x = - meshBreakA.position.x;
+            meshBreakC.position.z = meshBreakA.position.z;
+            scene.add( meshBreakC );
+            // 绞轮 刹车架
+            var xBreakC2 = 1;
+            var yBreakC2 = 8;
+            var zBreakC2 = 3;
+            var boxBreakC2 = new THREE.BoxGeometry(xBreakC2, yBreakC2, zBreakC2);
+            var meshBreakC2 = new THREE.Mesh(boxBreakC2, mtlBreakC);
+            meshBreakC2.position.x = - meshBreakA2.position.x;
+            meshBreakC2.position.z = meshBreakA2.position.z;
+            meshBreakC2.position.y = - yBreakC2 / 2;
+            scene.add( meshBreakC2 );
+
+            // 绞轮 刹车片
+            var mtlBreakD = new THREE.MeshPhongMaterial({ color: '#333333'});
+            var rBreakD = 1;
+            var hBreakD = 0.2;
+            var cyBreakD = new THREE.CylinderGeometry(rBreakD, rBreakD, hBreakD, segment);
+            
+            // 绞轮 刹车片1
+            var meshBreakD1 = new THREE.Mesh(cyBreakD, mtlBreakD);
+            meshBreakD1.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakD1.position.x = - meshBreakB1.position.x;
+            meshBreakD1.position.z = - zBreakC + meshBreakC.position.z;
+            meshBreakD1.position.y = rBreakD;
+            scene.add( meshBreakD1 );
+            // 绞轮 刹车片2
+            var meshBreakD2 = new THREE.Mesh(cyBreakD, mtlBreakD);
+            meshBreakD2.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakD2.position.x = - meshBreakB2.position.x;
+            meshBreakD2.position.z = - zBreakC + meshBreakC.position.z;
+            meshBreakD2.position.y = rBreakD;
+            scene.add( meshBreakD2 );
+            // 绞轮 刹车片3
+            var meshBreakD3 = new THREE.Mesh(cyBreakD, mtlBreakD);
+            meshBreakD3.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakD3.position.x = - meshBreakB3.position.x;
+            meshBreakD3.position.z = - zBreakC + meshBreakC.position.z;
+            meshBreakD3.position.y = - rBreakD * 2;
+            scene.add( meshBreakD3 );
+            // 绞轮 刹车片4
+            var meshBreakD4 = new THREE.Mesh(cyBreakD, mtlBreakD);
+            meshBreakD4.rotation.z = 0.25 * 2 * Math.PI;
+            meshBreakD4.position.x = - meshBreakB4.position.x;
+            meshBreakD4.position.z = - zBreakC + meshBreakC.position.z;
+            meshBreakD4.position.y = - rBreakD * 2;
+            scene.add( meshBreakD4 );
+        }
+
+
+        // 机器C
+        function initMachineC() {
+
+            var zOffset = 8;
+            var mtlMachineC = new THREE.MeshPhongMaterial({ color: '#00BFFF'});
+            
+            // 机体
+            var xMachineC1 = 8;
+            var yMachineC1 = 6;
+            var zMachineC1 = 12;
+            var boxMachineC1 = new THREE.BoxGeometry(xMachineC1, yMachineC1, zMachineC1);
+            var meshMachineC1 = new THREE.Mesh(boxMachineC1, mtlMachineC);
+            meshMachineC1.position.z = zMachineC1 * 2 + zOffset;
+            scene.add( meshMachineC1 );
+
+            // 机脚
+            var xMachineC2 = 1;
+            var yMachineC2 = 3;
+            var zMachineC2 = zMachineC1;
+            var boxMachineC2 = new THREE.BoxGeometry(xMachineC2, yMachineC2, zMachineC2);
+            var meshMachineC2 = new THREE.Mesh(boxMachineC2, mtlMachineC);
+            meshMachineC2.position.x = (xMachineC1 - xMachineC2) / 2;
+            meshMachineC2.position.y = - (yMachineC1 + yMachineC2) / 2;
+            meshMachineC2.position.z = zMachineC1 * 2 + zOffset;
+            scene.add( meshMachineC2 );
+            
+            // 机脚
+            var zMachineC3 = zMachineC1;
+            var boxMachineC3 = new THREE.BoxGeometry(xMachineC2, yMachineC2, zMachineC3);
+            var meshMachineC3 = new THREE.Mesh(boxMachineC3, mtlMachineC);
+            meshMachineC3.position.x = - (xMachineC1 - xMachineC2) / 2;
+            meshMachineC3.position.y = - (yMachineC1 + yMachineC2) / 2;
+            meshMachineC3.position.z = zMachineC1 * 2 + zOffset;
+            scene.add( meshMachineC3 );
+            
+            // 机体圆状凸起
+            var xMachineC4 = yMachineC1 / 2 - 1;
+            var zMachineC4 = zMachineC1;
+            var cyMachineC4 = new THREE.CylinderGeometry(xMachineC4, xMachineC4, zMachineC1, 20);
+            var meshMachineC4 = new THREE.Mesh(cyMachineC4, mtlMachineC);
+            meshMachineC4.position.x = meshMachineC1.position.x;
+            meshMachineC4.position.y = meshMachineC1.position.y;
+            meshMachineC4.position.z = meshMachineC1.position.z + 0.5;
+            meshMachineC4.rotation.x = 0.25 * 2 * Math.PI;
+            scene.add( meshMachineC4 );
+            
+            // 仪表盘面板
+            var xMachineC5 = xMachineC1 - 2;
+            var yMachineC5 = 6;
+            var zMachineC5 = 0.5;
+            var boxMachineC5 = new THREE.BoxGeometry(xMachineC5, yMachineC5, zMachineC5);
+            var meshMachineC5 = new THREE.Mesh(boxMachineC5, mtlMachineC);
+            meshMachineC5.position.x = meshMachineC1.position.x;
+            meshMachineC5.position.y = (yMachineC1 + yMachineC5) / 2;
+            meshMachineC5.position.z = meshMachineC1.position.z + (zMachineC1  - zMachineC5) / 2;
+            scene.add( meshMachineC5 );
+
+            // 仪表
+            var loader = new THREE.TextureLoader();
+            // var groundTexture = loader.load( 'textures/terrain/grasslight-big.jpg' );
+            var textureC6 = loader.load( 'textures/machine/table.png' );
+            textureC6.wrapS = textureC6.wrapT = THREE.RepeatWrapping;
+            textureC6.repeat.set( 1, 1 );
+            var mtlMachineC6 = new THREE.MeshPhongMaterial( { map: textureC6 } );
+            
+            var rMachineC6 = 1;
+            var heightMachineC6 = 0.2;
+            // 仪表A
+            var cyMachineC6A = new THREE.CylinderGeometry(rMachineC6, rMachineC6, heightMachineC6, 20);
+            var meshMachineC6A = new THREE.Mesh(cyMachineC6A, mtlMachineC6);
+            meshMachineC6A.position.x = meshMachineC5.position.x;
+            meshMachineC6A.position.y = meshMachineC5.position.y - rMachineC6;
+            meshMachineC6A.position.z = meshMachineC5.position.z + 0.2;
+            meshMachineC6A.rotation.y = 0.25 * 2 * Math.PI;
+            meshMachineC6A.rotation.z = 0.25 * 2 * Math.PI;
+            scene.add( meshMachineC6A );
+            
+            // 仪表B
+            var cyMachineC6B = new THREE.CylinderGeometry(rMachineC6, rMachineC6, heightMachineC6, 20);
+            var meshMachineC6B = new THREE.Mesh(cyMachineC6B, mtlMachineC6);
+            meshMachineC6B.position.x = meshMachineC5.position.x + rMachineC6 + 1;
+            meshMachineC6B.position.y = meshMachineC5.position.y + rMachineC6 - 1;
+            meshMachineC6B.position.z = meshMachineC5.position.z + 0.2;
+            meshMachineC6B.rotation.y = 0.25 * 2 * Math.PI;
+            meshMachineC6B.rotation.z = 0.25 * 2 * Math.PI;
+            scene.add( meshMachineC6B );
+            
+            // 仪表C
+            var cyMachineC6C = new THREE.CylinderGeometry(rMachineC6, rMachineC6, heightMachineC6, 20);
+            var meshMachineC6C = new THREE.Mesh(cyMachineC6C, mtlMachineC6);
+            meshMachineC6C.position.x = meshMachineC5.position.x - rMachineC6 - 1;
+            meshMachineC6C.position.y = meshMachineC5.position.y + rMachineC6 - 1;
+            meshMachineC6C.position.z = meshMachineC5.position.z + 0.2;
+            meshMachineC6C.rotation.y = 0.25 * 2 * Math.PI;
+            meshMachineC6C.rotation.z = 0.25 * 2 * Math.PI;
+            scene.add( meshMachineC6C );
+
+            // 机器
+            var mtlMachineC7 = new THREE.MeshPhongMaterial({ color: '#333333'});
+            var xMachineC7 = 6;
+            var yMachineC7 = 4;
+            var zMachineC7 = zMachineC1 - 1;
+            var boxMachineC7 = new THREE.BoxGeometry(xMachineC7, yMachineC7, zMachineC7);
+            var meshMachineC7 = new THREE.Mesh(boxMachineC7, mtlMachineC7);
+            meshMachineC7.position.x = meshMachineC1.position.x;
+            meshMachineC7.position.y = (yMachineC1 + yMachineC7) / 2;
+            meshMachineC7.position.z = meshMachineC1.position.z + (zMachineC1  - zMachineC7) / 2 - zMachineC5;
+            scene.add( meshMachineC7 );
+            
+            // 机器和机体连接的管体
+            var rTube = 0.3;
+            var points = [];
+            var xTubePoint1 = xMachineC7 / 2;
+            var yTubePoint1 = (yMachineC1 + yMachineC7) / 2;
+            var zTubePoint1 = zMachineC7 / 2;
+            points.push(new THREE.Vector3(xTubePoint1, yTubePoint1, zTubePoint1));
+            var xTubePoint2 = xMachineC1 / 2 + 1;
+            var yTubePoint2 = yTubePoint1;
+            var zTubePoint2 = zTubePoint1;
+            points.push(new THREE.Vector3(xTubePoint2, yTubePoint2, zTubePoint2));
+            var xTubePoint3 = xTubePoint2;
+            var yTubePoint3 = 0;
+            var zTubePoint3 = zTubePoint2;
+            points.push(new THREE.Vector3(xTubePoint3, yTubePoint3, zTubePoint3));
+            var xTubePoint4 = xTubePoint2 - 1;
+            var yTubePoint4 = yTubePoint3;
+            var zTubePoint4 = zTubePoint3;
+            points.push(new THREE.Vector3(xTubePoint4, yTubePoint4, zTubePoint4));
+
+            var tubeMachineC8 = new THREE.TubeGeometry(new THREE.SplineCurve3(points), 60, rTube, 20, false);
+
+            // 管体1
+            var meshMachineC8 = new THREE.Mesh(tubeMachineC8, mtlMachineC);
+            meshMachineC8.position.z = meshMachineC1.position.z - zMachineC1 / 2 + 1;
+            scene.add( meshMachineC8 );
+            // 管体2
+            var meshMachineC9 = new THREE.Mesh(tubeMachineC8, mtlMachineC);
+            meshMachineC9.position.z = meshMachineC1.position.z - zMachineC1 / 2 - 1;
+            scene.add( meshMachineC9 );
+            // 管体3
+            var meshMachineC10 = new THREE.Mesh(tubeMachineC8, mtlMachineC);
+            meshMachineC10.position.z = meshMachineC1.position.z - zMachineC1 / 2 - 2;
+            scene.add( meshMachineC10 );
+            // 管体4
+            var meshMachineC11 = new THREE.Mesh(tubeMachineC8, mtlMachineC);
+            meshMachineC11.position.z = meshMachineC1.position.z - zMachineC1 / 2 - 3;
+            scene.add( meshMachineC11 );
+        }
+
+        // 双轮
+        function initMachineD() {
+
+            var segment = 50;
+
+            var mtlMachineD = new THREE.MeshPhongMaterial({ color: '#009999'});
+
+            var xOffset = 18;
+            var zOffset = 24;
+
+            // 机体1  底部方座(立)
+            var xMachineD1 = 3;
+            var yMachineD1 = 8;
+            var zMachineD1 = 2;
+            var boxMachineD1 = new THREE.BoxGeometry(xMachineD1, yMachineD1, zMachineD1);
+            var meshMachineD1 = new THREE.Mesh(boxMachineD1, mtlMachineD);
+            meshMachineD1.position.x = xMachineD1 + xOffset;
+            meshMachineD1.position.y = - yMachineD1 / 2;
+            meshMachineD1.position.z = zMachineD1 + zOffset;
+            scene.add( meshMachineD1 );
+            
+            // 机体2  底部方座(横)
+            var xMachineD2 = xMachineD1;
+            var yMachineD2 = 1;
+            var zMachineD2 = 2;
+            var boxMachineD2 = new THREE.BoxGeometry(xMachineD2, yMachineD2, zMachineD2);
+            var meshMachineD2 = new THREE.Mesh(boxMachineD2, mtlMachineD);
+            meshMachineD2.position.x = xMachineD1 + xOffset;
+            meshMachineD2.position.y = meshMachineD1.position.y + (yMachineD1 - yMachineD2) / 2;
+            meshMachineD2.position.z = (zMachineD1 - zMachineD2) / 2 + zOffset;
+            scene.add( meshMachineD2 );
+            
+            var mtlMachineD3 = new THREE.MeshPhongMaterial({ color: '#999999'});
+            // 机体3 侧支面
+            var xMachineD3 = 1;
+            var yMachineD3 = 20;
+            var zMachineD3 = 0.5;
+            var boxMachineD3 = new THREE.BoxGeometry(xMachineD3, yMachineD3, zMachineD3);
+            var meshMachineD3 = new THREE.Mesh(boxMachineD3, mtlMachineD3);
+            meshMachineD3.position.x = xMachineD1 + xOffset;
+            meshMachineD3.position.y = meshMachineD1.position.y + (yMachineD1 + yMachineD3) / 2;
+            meshMachineD3.position.z = meshMachineD1.position.z + (zMachineD1 - zMachineD3) / 2;
+            scene.add( meshMachineD3 );
+            // 机体4 顶部方座
+            var xMachineD4 = xMachineD3;
+            var yMachineD4 = 0.2;
+            var zMachineD4 = xMachineD3;
+            var boxMachineD4 = new THREE.BoxGeometry(xMachineD4, yMachineD4, zMachineD4);
+            var meshMachineD4 = new THREE.Mesh(boxMachineD4, mtlMachineD);
+            meshMachineD4.position.x = xMachineD1 + xOffset;
+            meshMachineD4.position.y = meshMachineD3.position.y + (yMachineD3 + yMachineD4) / 2 - yMachineD4;
+            meshMachineD4.position.z = meshMachineD1.position.z + (zMachineD1 - zMachineD4) / 2 - zMachineD3;
+            scene.add( meshMachineD4 );
+            // 机体5 顶部圆盘
+            var rMachineD5 = xMachineD4 / 2;
+            var heightMachineD5 = 0.2;
+            var boxMachineD5 = new THREE.CylinderGeometry(rMachineD5, rMachineD5, heightMachineD5, segment);
+            var meshMachineD5 = new THREE.Mesh(boxMachineD5, mtlMachineD);
+            meshMachineD5.position.x = xMachineD1 + xOffset;
+            meshMachineD5.position.y = meshMachineD3.position.y + (yMachineD3 + yMachineD4) / 2 - yMachineD4 + heightMachineD5 + heightMachineD5;
+            meshMachineD5.position.z = meshMachineD1.position.z + (zMachineD1 - zMachineD4) / 2 - zMachineD3;
+            scene.add( meshMachineD5 );
+            // 机体6 方座与圆盘连接柱体
+            var rMachineD6 = 0.1;
+            var heightMachineD6 = 0.2;
+            var boxMachineD6 = new THREE.CylinderGeometry(rMachineD6, rMachineD6, heightMachineD6, segment);
+            var meshMachineD6 = new THREE.Mesh(boxMachineD6, mtlMachineD);
+            meshMachineD6.position.x = xMachineD1 + xOffset;
+            meshMachineD6.position.y = meshMachineD3.position.y + (yMachineD3 + yMachineD4) / 2 - yMachineD4 + heightMachineD6;
+            meshMachineD6.position.z = meshMachineD5.position.z;
+            scene.add( meshMachineD6 );
+            
+            // 机体7 中间立轴
+            var rMachineD7 = 0.2;
+            var heightMachineD7 = yMachineD3;
+            var boxMachineD7 = new THREE.CylinderGeometry(rMachineD7, rMachineD7, heightMachineD7, segment);
+            var meshMachineD7 = new THREE.Mesh(boxMachineD7, mtlMachineD3);
+            meshMachineD7.position.x = meshMachineD1.position.x;
+            meshMachineD7.position.y = meshMachineD1.position.y + (yMachineD1 + yMachineD3) / 2;
+            meshMachineD7.position.z = meshMachineD5.position.z;
+            scene.add( meshMachineD7 );
+            
+            // 机体8 底部横轴
+            var rMachineD8 = 0.2;
+            var heightMachineD8 = 25;
+            var boxMachineD8 = new THREE.CylinderGeometry(rMachineD8, rMachineD8, heightMachineD8, segment);
+            var meshMachineD8 = new THREE.Mesh(boxMachineD8, mtlMachineD);
+            meshMachineD8.rotation.x = 0.25 * 2 * Math.PI;
+            meshMachineD8.position.x = meshMachineD2.position.x;
+            meshMachineD8.position.y = meshMachineD2.position.y;
+            meshMachineD8.position.z = meshMachineD2.position.z - heightMachineD8 / 2;
+            scene.add( meshMachineD8 );
+
+            var mtlMachineD9 = new THREE.MeshPhongMaterial({ color: '#660000'});
+            // 机体9 飞轮
+            var rMachineD9Outer = 4;
+            var heightMachineD9 = 0.5;
+            var boxMachineD9Outer = new THREE.CylinderGeometry(rMachineD9Outer, rMachineD9Outer, heightMachineD9, segment);
+            var meshMachineD9Outer = new THREE.Mesh(boxMachineD9Outer);
+
+            var rMachineD9Inner = 3.4;
+            var boxMachineD9Inner = new THREE.CylinderGeometry(rMachineD9Inner, rMachineD9Inner, heightMachineD9, segment);
+            var meshMachineD9Inner = new THREE.Mesh(boxMachineD9Inner);
+            // 机体9 飞轮
+            var rMachineD9Core = 0.5;
+            var boxMachineD9Core = new THREE.CylinderGeometry(rMachineD9Core, rMachineD9Core, heightMachineD9, segment);
+            var meshMachineD9Core = new THREE.Mesh(boxMachineD9Core);
+
+            // 机体10 飞轮支架
+            var xMachineD9A = rMachineD9Outer - rMachineD9Core;
+            var yMachineD9A = heightMachineD9 - 0.2;
+            var zMachineD9A = heightMachineD9;
+            var boxMachineD9A = new THREE.BoxGeometry(xMachineD9A, yMachineD9A, zMachineD9A);
+
+            var meshMachineD9A = new THREE.Mesh(boxMachineD9A);
+            meshMachineD9A.position.x = (rMachineD9Outer - rMachineD9Core) / 2;
+            // scene.add( meshMachineD9A );
+            var meshMachineD9B = new THREE.Mesh(boxMachineD9A);
+            meshMachineD9B.position.x = (rMachineD9Outer - rMachineD9Core) * Math.cos(0);
+            // scene.add( meshMachineD9B );
+            var meshMachineD9B = new THREE.Mesh(boxMachineD9A);
+            meshMachineD9B.rotation.y = -0.2 * 2 * Math.PI;
+            meshMachineD9B.position.x = (rMachineD9Outer - rMachineD9Core) / 2 * Math.cos(0.2 * 2 * Math.PI);
+            meshMachineD9B.position.z = (rMachineD9Outer - rMachineD9Core) / 2 * Math.sin(0.2 * 2 * Math.PI);
+            // scene.add( meshMachineD9B );
+            var meshMachineD9C = new THREE.Mesh(boxMachineD9A);
+            meshMachineD9C.rotation.y = -0.4 * 2 * Math.PI;
+            meshMachineD9C.position.x = (rMachineD9Outer - rMachineD9Core) / 2 * Math.cos(0.4 * 2 * Math.PI);
+            meshMachineD9C.position.z = (rMachineD9Outer - rMachineD9Core) / 2 * Math.sin(0.4 * 2 * Math.PI);
+            // scene.add( meshMachineD9C );
+            var meshMachineD9D = new THREE.Mesh(boxMachineD9A);
+            meshMachineD9D.rotation.y = -0.6 * 2 * Math.PI;
+            meshMachineD9D.position.x = (rMachineD9Outer - rMachineD9Core) / 2 * Math.cos(0.6 * 2 * Math.PI);
+            meshMachineD9D.position.z = (rMachineD9Outer - rMachineD9Core) / 2 * Math.sin(0.6 * 2 * Math.PI);
+            // scene.add( meshMachineD9D );
+            var meshMachineD9E = new THREE.Mesh(boxMachineD9A);
+            meshMachineD9E.rotation.y = -0.8 * 2 * Math.PI;
+            meshMachineD9E.position.x = (rMachineD9Outer - rMachineD9Core) / 2 * Math.cos(0.8 * 2 * Math.PI);
+            meshMachineD9E.position.z = (rMachineD9Outer - rMachineD9Core) / 2 * Math.sin(0.8 * 2 * Math.PI);
+            // scene.add( meshMachineD9E );
+
+            // 飞轮
+            var bspMachineD9Outer = new ThreeBSP(meshMachineD9Outer);
+            var bspMachineD9Inner = new ThreeBSP(meshMachineD9Inner);
+            var bspMachineD9Core = new ThreeBSP(meshMachineD9Core);
+            var bspMachineD9A = new ThreeBSP(meshMachineD9A);
+            var bspMachineD9B = new ThreeBSP(meshMachineD9B);
+            var bspMachineD9C = new ThreeBSP(meshMachineD9C);
+            var bspMachineD9D = new ThreeBSP(meshMachineD9D);
+            var bspMachineD9E = new ThreeBSP(meshMachineD9E);
+            var bspMachineD9 = bspMachineD9Outer.subtract(bspMachineD9Inner).union(bspMachineD9Core)
+                                .union(bspMachineD9A).union(bspMachineD9B).union(bspMachineD9C).union(bspMachineD9D).union(bspMachineD9E);
+            meshMachineD9 = bspMachineD9.toMesh(mtlMachineD9);
+            meshMachineD9.rotation.z = 0.25 * 2 * Math.PI;
+            meshMachineD9.position.x = meshMachineD1.position.x - xMachineD1 / 2 - heightMachineD9 / 2;
+            meshMachineD9.position.y = meshMachineD9.position.y - 0.5;
+            meshMachineD9.position.z = meshMachineD1.position.z;
+            scene.add( meshMachineD9 );
+
+            meshMachineD92 = bspMachineD9.toMesh(mtlMachineD9);
+            meshMachineD92.rotation.z = 0.25 * 2 * Math.PI;
+            meshMachineD92.position.x = meshMachineD1.position.x + xMachineD1 / 2 + heightMachineD9 / 2;
+            meshMachineD92.position.y = meshMachineD92.position.y - 0.5;
+            meshMachineD92.position.z = meshMachineD1.position.z;
+            // meshMachineD92.position.y = -10;
+            scene.add( meshMachineD92 );
+        }
+
+        // 支架
+        var shelfOne;
+        var shelfOne2;
+        // 支架高
+        var yShelfA = 32;
+        // 支架宽
+        var xShelfB = 8;
+        // 飞轮半径
+        var rShelfWheelOuter = 4;
+        // 飞轮轮槽切去部分半径
+        var rShelfWheelRaceSubtract = 3.8;
+        // 矿井侧轮1
+        var meshShelfWheel1;
+        // 矿井侧轮2
+        var meshShelfWheel2;
+        // 绞轮侧轮1
+        var meshShelfWheel3;
+        // 绞轮侧轮2
+        var meshShelfWheel4;
+        function initShelf() {
+            var mtlShelf = new THREE.MeshPhongMaterial({ color: '#660000'});
+
+            // 斜边角度
+            var angel = Math.atan2(yShelfA/2, xShelfB);
+            // 斜边长度
+            var xShelfC = xShelfB / Math.cos(angel);
+            // 斜边y坐标
+            var pyShelfC = (xShelfC / 2) * Math.sin(angel);
+
+            // 上中下短边
+            var yShelfB = 0.5;
+            var zShelfB = 0.5;
+            var boxShelfB = new THREE.BoxGeometry(xShelfB, yShelfB, zShelfB);
+            var meshShelfB1 = new THREE.Mesh(boxShelfB, mtlShelf);
+            meshShelfB1.position.y = yShelfA / 2;
+            // scene.add( meshShelfB1 );
+            var meshShelfB2 = new THREE.Mesh(boxShelfB, mtlShelf);
+            // scene.add( meshShelfB2 );
+            var meshShelfB3 = new THREE.Mesh(boxShelfB, mtlShelf);
+            meshShelfB3.position.y = - yShelfA / 2;
+            // scene.add( meshShelfB3 );
+
+            // 立边
+            var xShelfA = 0.5;
+            var zShelfA = 0.5;
+            var boxShelfA = new THREE.BoxGeometry(xShelfA, yShelfA, zShelfA);
+            var meshShelfA1 = new THREE.Mesh(boxShelfA, mtlShelf);
+            meshShelfA1.position.x = - xShelfB / 2;
+            // scene.add( meshShelfA1 );
+            
+            // 斜边
+            var yShelfC = 0.5;
+            var zShelfC = 0.5;
+            var boxShelfC = new THREE.BoxGeometry(xShelfC, yShelfC, zShelfC);
+            var meshShelfC1 = new THREE.Mesh(boxShelfC, mtlShelf);
+            meshShelfC1.rotation.z = angel;
+            meshShelfC1.position.y = pyShelfC;
+            // scene.add( meshShelfC1 );
+            var meshShelfC2 = new THREE.Mesh(boxShelfC, mtlShelf);
+            meshShelfC2.rotation.z = - angel;
+            meshShelfC2.position.y = - pyShelfC;
+            // scene.add( meshShelfC2 );
+
+            // 单边组合
+            var bspShelfB1 = new ThreeBSP(meshShelfB1);
+            var bspShelfB2 = new ThreeBSP(meshShelfB2);
+            var bspShelfB3 = new ThreeBSP(meshShelfB3);
+            var bspShelfA1 = new ThreeBSP(meshShelfA1);
+            var bspShelfC1 = new ThreeBSP(meshShelfC1);
+            var bspShelfC2 = new ThreeBSP(meshShelfC2);
+            var bspShelf = bspShelfB1.union(bspShelfB2).union(bspShelfB3).union(bspShelfA1).union(bspShelfC1).union(bspShelfC2);
+
+            shelf1 = bspShelf.toMesh(mtlShelf);
+            shelf1.position.z = - xShelfB / 2;
+            // scene.add( shelf1 );
+            shelf2 = bspShelf.toMesh(mtlShelf);
+            shelf2.rotation.y = 0.5 * 2 * Math.PI;
+            shelf2.position.z = xShelfB / 2;
+            // scene.add( shelf2 );
+            shelf3 = bspShelf.toMesh(mtlShelf);
+            shelf3.rotation.y = - 0.25 * 2 * Math.PI;
+            shelf3.position.x = xShelfB / 2;
+            // scene.add( shelf3 );
+            shelf4 = bspShelf.toMesh(mtlShelf);
+            shelf4.rotation.y = 0.25 * 2 * Math.PI;
+            shelf4.position.x = - xShelfB / 2;
+            // scene.add( shelf4 );
+
+            // 四边组合
+            var bspShelf1 = new ThreeBSP(shelf1);
+            var bspShelf2 = new ThreeBSP(shelf2);
+            var bspShelf3 = new ThreeBSP(shelf3);
+            var bspShelf4 = new ThreeBSP(shelf4);
+            var bspShelfOne = bspShelf1.union(bspShelf2).union(bspShelf3).union(bspShelf4);
+
+            shelfOne = bspShelfOne.toMesh(mtlShelf);
+            shelfOne.position.y = shelfOne.position.y + Math.abs(pyGround) + yGround / 2;
+            shelfOne.position.z = - 50;
+            shelfOne.position.x = 10;
+            scene.add( shelfOne );
+            
+            shelfOne2 = bspShelfOne.toMesh(mtlShelf);
+            shelfOne2.position.y = shelfOne.position.y;
+            shelfOne2.position.z = shelfOne.position.z;
+            shelfOne2.position.x = - shelfOne.position.x;
+            scene.add( shelfOne2 );
+            var segment = 20;
+
+            // 支架飞轮
+            var mtlShelfWheel = new THREE.MeshPhongMaterial({ color: '#336666'});
+            // 支架飞轮
+            var heightShelfWheel = 0.5;
+            var boxShelfWheelOuter = new THREE.CylinderGeometry(rShelfWheelOuter, rShelfWheelOuter, heightShelfWheel, segment);
+            var meshShelfWheelOuter = new THREE.Mesh(boxShelfWheelOuter);
+
+            // 飞轮内部切去部分
+            var rShelfWheelInner = 3.4;
+            var boxShelfWheelInner = new THREE.CylinderGeometry(rShelfWheelInner, rShelfWheelInner, heightShelfWheel, segment);
+            var meshShelfWheelInner = new THREE.Mesh(boxShelfWheelInner);
+
+            // 飞轮轮槽初始圆
+            var rShelfWheelRace = rShelfWheelOuter;
+            var hShelfWheelRace = 0.3;
+            var boxShelfWheelRace = new THREE.CylinderGeometry(rShelfWheelRace, rShelfWheelRace, hShelfWheelRace, segment);
+            var meshShelfWheelRace = new THREE.Mesh(boxShelfWheelRace);
+            // 飞轮轮槽切去部分
+            rShelfWheelRaceSubtract = 3.8;
+            var hShelfWheelRaceSubtract = 0.3;
+            var boxShelfWheelRaceSubtract = new THREE.CylinderGeometry(rShelfWheelRaceSubtract, rShelfWheelRaceSubtract, hShelfWheelRaceSubtract, segment);
+            var meshShelfWheelRaceSubtract = new THREE.Mesh(boxShelfWheelRaceSubtract);
+            
+            // 机体9 飞轮
+            var rShelfWheelCore = 0.5;
+            var boxShelfWheelCore = new THREE.CylinderGeometry(rShelfWheelCore, rShelfWheelCore, heightShelfWheel, segment);
+            var meshShelfWheelCore = new THREE.Mesh(boxShelfWheelCore);
+
+            // 机体10 飞轮支架
+            var xShelfWheelA = rShelfWheelOuter - rShelfWheelCore;
+            var yShelfWheelA = heightShelfWheel - 0.2;
+            var zShelfWheelA = heightShelfWheel;
+            var boxShelfWheelA = new THREE.BoxGeometry(xShelfWheelA, yShelfWheelA, zShelfWheelA);
+
+            var meshShelfWheelA = new THREE.Mesh(boxShelfWheelA);
+            meshShelfWheelA.position.x = (rShelfWheelOuter - rShelfWheelCore) / 2;
+            // scene.add( meshShelfWheelA );
+            var meshShelfWheelB = new THREE.Mesh(boxShelfWheelA);
+            meshShelfWheelB.position.x = (rShelfWheelOuter - rShelfWheelCore) * Math.cos(0);
+            // scene.add( meshShelfWheelB );
+            var meshShelfWheelB = new THREE.Mesh(boxShelfWheelA);
+            meshShelfWheelB.rotation.y = -0.2 * 2 * Math.PI;
+            meshShelfWheelB.position.x = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.cos(0.2 * 2 * Math.PI);
+            meshShelfWheelB.position.z = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.sin(0.2 * 2 * Math.PI);
+            // scene.add( meshShelfWheelB );
+            var meshShelfWheelC = new THREE.Mesh(boxShelfWheelA);
+            meshShelfWheelC.rotation.y = -0.4 * 2 * Math.PI;
+            meshShelfWheelC.position.x = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.cos(0.4 * 2 * Math.PI);
+            meshShelfWheelC.position.z = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.sin(0.4 * 2 * Math.PI);
+            // scene.add( meshShelfWheelC );
+            var meshShelfWheelD = new THREE.Mesh(boxShelfWheelA);
+            meshShelfWheelD.rotation.y = -0.6 * 2 * Math.PI;
+            meshShelfWheelD.position.x = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.cos(0.6 * 2 * Math.PI);
+            meshShelfWheelD.position.z = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.sin(0.6 * 2 * Math.PI);
+            // scene.add( meshShelfWheelD );
+            var meshShelfWheelE = new THREE.Mesh(boxShelfWheelA);
+            meshShelfWheelE.rotation.y = -0.8 * 2 * Math.PI;
+            meshShelfWheelE.position.x = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.cos(0.8 * 2 * Math.PI);
+            meshShelfWheelE.position.z = (rShelfWheelOuter - rShelfWheelCore) / 2 * Math.sin(0.8 * 2 * Math.PI);
+            // scene.add( meshShelfWheelE );
+
+            // // 飞轮
+            var bspShelfWheelOuter = new ThreeBSP(meshShelfWheelOuter);
+            var bspShelfWheelInner = new ThreeBSP(meshShelfWheelInner);
+            var bspShelfWheelCore = new ThreeBSP(meshShelfWheelCore);
+            var bspShelfWheelA = new ThreeBSP(meshShelfWheelA);
+            var bspShelfWheelB = new ThreeBSP(meshShelfWheelB);
+            var bspShelfWheelC = new ThreeBSP(meshShelfWheelC);
+            var bspShelfWheelD = new ThreeBSP(meshShelfWheelD);
+            var bspShelfWheelE = new ThreeBSP(meshShelfWheelE);
+
+            // 飞轮轮槽初始圆
+            var bspShelfWheelRace = new ThreeBSP(meshShelfWheelRace);
+            // 飞轮轮槽切去部分
+            var bspShelfWheelRaceSubtract = new ThreeBSP(meshShelfWheelRaceSubtract);
+            // 飞轮轮槽圆环
+            var bspRace = bspShelfWheelRace.subtract(bspShelfWheelRaceSubtract);
+            // 飞轮
+            var bspShelfWheel = bspShelfWheelOuter.subtract(bspShelfWheelInner).union(bspShelfWheelCore)    // 飞轮圆环，飞轮中心圆
+                                .subtract(bspShelfWheelRace.subtract(bspShelfWheelRaceSubtract))            // 飞轮槽
+                                .union(bspShelfWheelA).union(bspShelfWheelB).union(bspShelfWheelC).union(bspShelfWheelD).union(bspShelfWheelE);
+            // 矿井侧轮1
+            meshShelfWheel1 = bspShelfWheel.toMesh(mtlShelfWheel);
+            meshShelfWheel1.rotation.z = 0.25 * 2 * Math.PI;
+            meshShelfWheel1.position.x = shelfOne.position.x;
+            meshShelfWheel1.position.y = shelfOne.position.y;
+            meshShelfWheel1.position.z = shelfOne.position.z;
+            scene.add( meshShelfWheel1 );
+            // 矿井侧轮2
+            meshShelfWheel2 = bspShelfWheel.toMesh(mtlShelfWheel);
+            meshShelfWheel2.rotation.z = 0.25 * 2 * Math.PI;
+            meshShelfWheel2.position.x = shelfOne2.position.x;
+            meshShelfWheel2.position.y = shelfOne.position.y;
+            meshShelfWheel2.position.z = shelfOne.position.z;
+            scene.add( meshShelfWheel2 );
+            // 绞轮侧轮1
+            meshShelfWheel3 = bspShelfWheel.toMesh(mtlShelfWheel);
+            meshShelfWheel3.rotation.z = 0.25 * 2 * Math.PI;
+            meshShelfWheel3.position.x = shelfOne.position.x;
+            meshShelfWheel3.position.y = shelfOne.position.y;
+            meshShelfWheel3.position.z = shelfOne.position.z + xShelfB;
+            scene.add( meshShelfWheel3 );
+            // 绞轮侧轮2
+            meshShelfWheel4 = bspShelfWheel.toMesh(mtlShelfWheel);
+            meshShelfWheel4.rotation.z = 0.25 * 2 * Math.PI;
+            meshShelfWheel4.position.x = shelfOne2.position.x;
+            meshShelfWheel4.position.y = shelfOne.position.y;
+            meshShelfWheel4.position.z = shelfOne.position.z + xShelfB;
+            scene.add( meshShelfWheel4 );
+        }
+
+        var meshCar;
+        var meshCar2;
+        var radianCar = 0;
+        function initCar() {
+            // 矿车车体
+            var mtlCar = new THREE.MeshPhongMaterial({ color: '#2E8B57'});
+            var xCarBody = 8;
+            var yCarBody = 10;
+            var zCarBody = 5;
+            var boxCarBody = new THREE.BoxGeometry(xCarBody, yCarBody, zCarBody);
+            var meshCarBody = new THREE.Mesh(boxCarBody);
+            // 矿车切除部分
+            var xCarSub = xCarBody - 1;
+            var yCarSub = yCarBody;
+            var zCarSub = zCarBody - 1;
+            var boxCarSub = new THREE.BoxGeometry(xCarSub, yCarSub, zCarSub);
+            var meshCarSub = new THREE.Mesh(boxCarSub);
+            meshCarSub.position.y = 0.5
+            // 矿车挂绳部分
+            var xCarLineBase = xCarBody;
+            var yCarLineBase = 0.5;
+            var zCarLineBase = 0.5;
+            var boxCarLineBase = new THREE.BoxGeometry(xCarLineBase, yCarLineBase, zCarLineBase);
+            meshCarLineBase = new THREE.Mesh(boxCarLineBase);
+            meshCarLineBase.position.y = yCarBody / 2;
+
+            // 矿车面合并
+            var bspCarBody = new ThreeBSP(meshCarBody);
+            var bspCarSub = new ThreeBSP(meshCarSub);
+            var bspCarLineBase = new ThreeBSP(meshCarLineBase);
+            var bspCar = bspCarBody.subtract(bspCarSub).union(bspCarLineBase);
+
+            meshCar = bspCar.toMesh(mtlCar);
+            meshCar.bname = "Car";
+            meshCar.position.x = shelfOne.position.x;
+            meshCar.position.z = shelfOne.position.z - (xShelfB / 2 + rShelfWheelRaceSubtract / 2) + zCarBody / 2 - 0.5;
+            scene.add(meshCar);
+            
+            meshCar2 = bspCar.toMesh(mtlCar);
+            meshCar2.bname = "Car";
+            meshCar2.position.x = shelfOne2.position.x;
+            meshCar2.position.z = shelfOne2.position.z - (xShelfB / 2 + rShelfWheelRaceSubtract / 2) + zCarBody / 2 - 0.5;
+            scene.add(meshCar2);
+        }
+
+        // 钢丝绳
+        var hLineA;
+        var meshLineA;
+        var meshLineA2;
+        function initLine() {
+            var segment = 20;
+
+            // 钢丝绳
+            var mtlLineA = new THREE.MeshPhongMaterial({ color: '#333333'});
+            var rLineA = 0.2;
+            // 支架外轮 与 矿车 之间的钢丝绳
+            hLineA = shelfOne.position.y - meshCar.position.y - rShelfWheelOuter - 1;
+            var cyLineA = new THREE.CylinderGeometry(rLineA, rLineA, hLineA, segment);
+            meshLineA = new THREE.Mesh(cyLineA, mtlLineA);
+            meshLineA.position.x = meshShelfWheel3.position.x;
+            meshLineA.position.y = yShelfA / 2;
+            meshLineA.position.z = meshCar.position.z;
+            scene.add(meshLineA);
+            meshLineA2 = new THREE.Mesh(cyLineA, mtlLineA);
+            meshLineA2.position.x = meshShelfWheel4.position.x;
+            meshLineA2.position.y = yShelfA / 2;
+            meshLineA2.position.z = meshCar.position.z;
+            scene.add(meshLineA2);
+
+            // 钢丝绳
+            var rTube = rLineA;
+            var points = [];
+            var xTubePoint1 = meshShelfWheel1.position.x;
+            var yTubePoint1 = meshShelfWheel1.position.y;
+            var zTubePoint1 = meshShelfWheel1.position.z - rShelfWheelOuter;
+            points.push(new THREE.Vector3(xTubePoint1, yTubePoint1, zTubePoint1));
+            var xTubePoint21 = meshShelfWheel1.position.x;
+            var yTubePoint21 = meshShelfWheel1.position.y + rShelfWheelOuter * Math.sin(0.125 * 2 * Math.PI);
+            var zTubePoint21 = meshShelfWheel1.position.z - rShelfWheelOuter * Math.cos(0.125 * 2 * Math.PI);
+            points.push(new THREE.Vector3(xTubePoint21, yTubePoint21, zTubePoint21));
+            var xTubePoint2 = meshShelfWheel1.position.x;
+            var yTubePoint2 = meshShelfWheel1.position.y + rShelfWheelOuter;
+            var zTubePoint2 = meshShelfWheel1.position.z;
+            points.push(new THREE.Vector3(xTubePoint2, yTubePoint2, zTubePoint2));
+
+            var xTubePoint23 = meshShelfWheel1.position.x;
+            var yTubePoint23 = meshShelfWheel1.position.y + rShelfWheelOuter;
+            var zTubePoint23 = meshShelfWheel1.position.z + xShelfB / 2;
+            points.push(new THREE.Vector3(xTubePoint23, yTubePoint23, zTubePoint23));
+            var xTubePoint31 = meshShelfWheel3.position.x;
+            var yTubePoint31 = meshShelfWheel3.position.y + rShelfWheelOuter;
+            var zTubePoint31 = meshShelfWheel3.position.z;
+            points.push(new THREE.Vector3(xTubePoint31, yTubePoint31, zTubePoint31));
+            var xTubePoint33 = meshShelfWheel3.position.x;
+            var yTubePoint33 = meshShelfWheel3.position.y + rShelfWheelOuter * Math.sin(0.18 * 2 * Math.PI);
+            var zTubePoint33 = meshShelfWheel3.position.z + rShelfWheelOuter * Math.cos(0.18 * 2 * Math.PI);
+            points.push(new THREE.Vector3(xTubePoint33, yTubePoint33, zTubePoint33));
+            var points3 = [];
+            var xTubePoint41 = meshShelfWheel3.position.x;
+            var yTubePoint41 = meshShelfWheel3.position.y + rShelfWheelOuter * Math.sin(0.15 * 2 * Math.PI);
+            var zTubePoint41 = meshShelfWheel3.position.z + rShelfWheelOuter * Math.cos(0.15 * 2 * Math.PI);
+            points.push(new THREE.Vector3(xTubePoint41, yTubePoint41, zTubePoint41));
+            var tubeLineB = new THREE.TubeGeometry(new THREE.SplineCurve3(points), 500, rTube, 20, false);
+            // 管体1 1
+            var meshLineB2 = new THREE.Mesh(tubeLineB, mtlLineA);
+            scene.add( meshLineB2 );
+
+            var points3 = [];
+            points3.push(new THREE.Vector3(xTubePoint41, yTubePoint41, zTubePoint41));
+            var xTubePoint4 = meshShelfWheel3.position.x;
+            var yTubePoint4 = rMachineBLine - 0.5;
+            var zTubePoint4 = 0.8;
+            points3.push(new THREE.Vector3(xTubePoint4, yTubePoint4, zTubePoint4));
+            var tubeLineB3 = new THREE.TubeGeometry(new THREE.SplineCurve3(points3), 500, rTube, 20, false);
+            // 管体1 2
+            var meshLineB3 = new THREE.Mesh(tubeLineB3, mtlLineA);
+            scene.add( meshLineB3 );
+
+            
+            // 钢丝绳
+            var rTube = rLineA;
+            var points = [];
+            var xTubePoint1 = meshShelfWheel2.position.x;
+            var yTubePoint1 = meshShelfWheel2.position.y;
+            var zTubePoint1 = meshShelfWheel2.position.z - rShelfWheelOuter;
+            points.push(new THREE.Vector3(xTubePoint1, yTubePoint1, zTubePoint1));
+            var xTubePoint21 = meshShelfWheel2.position.x;
+            var yTubePoint21 = meshShelfWheel2.position.y + rShelfWheelOuter * Math.sin(0.125 * 2 * Math.PI);
+            var zTubePoint21 = meshShelfWheel2.position.z - rShelfWheelOuter * Math.cos(0.125 * 2 * Math.PI);
+            points.push(new THREE.Vector3(xTubePoint21, yTubePoint21, zTubePoint21));
+            var xTubePoint2 = meshShelfWheel2.position.x;
+            var yTubePoint2 = meshShelfWheel2.position.y + rShelfWheelOuter;
+            var zTubePoint2 = meshShelfWheel2.position.z;
+            points.push(new THREE.Vector3(xTubePoint2, yTubePoint2, zTubePoint2));
+
+            var xTubePoint23 = meshShelfWheel2.position.x;
+            var yTubePoint23 = meshShelfWheel2.position.y + rShelfWheelOuter;
+            var zTubePoint23 = meshShelfWheel2.position.z + xShelfB / 2;
+            points.push(new THREE.Vector3(xTubePoint23, yTubePoint23, zTubePoint23));
+            var xTubePoint31 = meshShelfWheel4.position.x;
+            var yTubePoint31 = meshShelfWheel4.position.y + rShelfWheelOuter;
+            var zTubePoint31 = meshShelfWheel4.position.z;
+            points.push(new THREE.Vector3(xTubePoint31, yTubePoint31, zTubePoint31));
+            var xTubePoint33 = meshShelfWheel4.position.x;
+            var yTubePoint33 = meshShelfWheel4.position.y + rShelfWheelOuter * Math.sin(0.18 * 2 * Math.PI);
+            var zTubePoint33 = meshShelfWheel4.position.z + rShelfWheelOuter * Math.cos(0.18 * 2 * Math.PI);
+            points.push(new THREE.Vector3(xTubePoint33, yTubePoint33, zTubePoint33));
+            var points3 = [];
+            var xTubePoint41 = meshShelfWheel4.position.x;
+            var yTubePoint41 = meshShelfWheel4.position.y + rShelfWheelOuter * Math.sin(0.15 * 2 * Math.PI);
+            var zTubePoint41 = meshShelfWheel4.position.z + rShelfWheelOuter * Math.cos(0.15 * 2 * Math.PI);
+            points.push(new THREE.Vector3(xTubePoint41, yTubePoint41, zTubePoint41));
+            var tubeLineC = new THREE.TubeGeometry(new THREE.SplineCurve3(points), 500, rTube, 20, false);
+            // 管体2 1
+            var meshLineC2 = new THREE.Mesh(tubeLineC, mtlLineA);
+            scene.add( meshLineC2 );
+
+            var points3 = [];
+            points3.push(new THREE.Vector3(xTubePoint41, yTubePoint41, zTubePoint41));
+            var xTubePoint4 = meshShelfWheel4.position.x;
+            var yTubePoint4 = rMachineBLine - 0.5;
+            var zTubePoint4 = 0.8;
+            points3.push(new THREE.Vector3(xTubePoint4, yTubePoint4, zTubePoint4));
+            var tubeLineC3 = new THREE.TubeGeometry(new THREE.SplineCurve3(points3), 500, rTube, 20, false);
+            // 管体2 2
+            var meshLineC3 = new THREE.Mesh(tubeLineC3, mtlLineA);
+            scene.add( meshLineC3 );
+        }
+
+        // 矿车轮偏移角度
+        // radian * 2 * Math.PI = corner
+        // 弧度 * 2PI = 角度
+        // 该方法只对X坐标为0的有效
+        function rotationPosition(radian, xObj, yObj, zObj) {
+
+            var vertor = {};
+            // 与Y轴相交的斜线的点到Y轴原点的距离
+            var lenY = yObj / Math.cos(radian * 2* Math.PI);
+            // 与Y轴相交的斜线
+            var lenYZ = zObj - Math.abs(yObj * Math.tan(radian * 2* Math.PI))
+            // Y坐标( 加法还是减法还需要根据角度情况修改)
+            vertor.y = lenY - lenYZ * Math.sin(radian * 2* Math.PI)
+            // Z坐标
+            vertor.z = lenYZ * Math.cos(radian * 2* Math.PI)
+
+            return vertor;
+        }
+        
+        /* 该注释勿删 斜向移动时Y轴偏移量*/
+        // var yMoveSpeed = zMoveSpeed * Math.tan(radianCar * 2* Math.PI);
+
+        // 电动机轴 绞轮轴 转速
+        // var roleSpeed = 0;
+        var initSpeed = -0.005;
+        var roleSpeed = initSpeed;
+        var moveSpeed = rMachineBLine * roleSpeed;
+        var roleSpeed2 = moveSpeed / rShelfWheelOuter;
+        var moveDistance = 0;
+        var tempSpeed = roleSpeed;
+        var isRerun = false;
+        var maxDeep = -50;
+        var maxHeightOffset = 10;
+        function render() {
+            
+            // 到达最高处
+            if (!isRerun && meshCar.position.y >= meshShelfWheel2.position.y - maxHeightOffset) {
+                roleSpeed = 0;
+                moveSpeed = rMachineBLine * roleSpeed;
+                roleSpeed2 = moveSpeed / rShelfWheelOuter;
+            }
+            // 到达最低处
+            if (meshCar.position.y <= maxDeep) {
+                roleSpeed = Math.abs(initSpeed);
+                tempSpeed = roleSpeed;
+                isRerun = false;
+                moveSpeed = rMachineBLine * roleSpeed;
+                roleSpeed2 = moveSpeed / rShelfWheelOuter;
+            }
+
+            // 矿车移动
+            meshCar.position.y += moveSpeed
+            meshCar2.position.y += moveSpeed
+            
+            // 电动机轴
+            meshMachineAxle.rotation.x += roleSpeed;
+            // 绞轮轴
+            machineB1.rotation.x += roleSpeed;
+            meshMachineBAxle.rotation.x += roleSpeed;
+            machineB1DE1.rotation.x += roleSpeed;
+            machineB1DE2.rotation.x += roleSpeed;
+            // 支架飞轮
+            meshShelfWheel1.rotation.x += roleSpeed2;
+            meshShelfWheel2.rotation.x += roleSpeed2;
+            meshShelfWheel3.rotation.x += roleSpeed2;
+            meshShelfWheel4.rotation.x += roleSpeed2;
+
+            // 矿车钢丝绳拉长
+            moveDistance += moveSpeed;
+            var scale = (- moveDistance + hLineA) / hLineA;
+            meshLineA.scale.set(1, scale, 1);
+            meshLineA2.scale.set(1, scale, 1);
+            // 矿车钢丝绳位置
+            meshLineA.position.y += (moveSpeed / 2);
+            meshLineA2.position.y += (moveSpeed / 2);
+
+            requestAnimationFrame( render );
+            renderer.render( scene, camera );
+        }
+        
+        function initEvent() {
+            document.addEventListener('mousedown', onDocumentMouseDown, false);
+            document.addEventListener('keydown', onDocumentKeyDown, false);
+        }
+        
+        // 点击屏幕
+        function onDocumentMouseDown(event) {
+            
+            // 改变运行状态全局变量
+            changeStatus();
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        // 按下空格
+        function onDocumentKeyDown(event) {
+            
+            switch ( event.keyCode ) {
+                case 32: // Space
+                    // 改变运行状态全局变量
+                    changeStatus();
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+            }
+        }
+        
+        // 改变运行状态全局变量
+        function changeStatus() {
+            // 等于0时 点击空格 重新运转
+            if (Math.abs(roleSpeed) <= 0.000000001) {
+                isRerun = true;
+                roleSpeed = - Math.abs(tempSpeed);
+                moveSpeed = rMachineBLine * roleSpeed;
+                roleSpeed2 = moveSpeed / rShelfWheelOuter;
+            } else {  // 大于0时 点击空格 反转
+                roleSpeed = - roleSpeed;
+                if (roleSpeed >= 0) {isRerun = false;}
+                moveSpeed = rMachineBLine * roleSpeed;
+                roleSpeed2 = moveSpeed / rShelfWheelOuter;
+            }
+        }
+
+        function init(){
+            initRender();
+            initScene();
+            initCamera();
+            initLight();
+            initObject();
+            initEvent();
+        }
+
+        init();
+        render();
+    </script>
+</body>
+</html>

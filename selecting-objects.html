@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Example 09.02 - Selecting objects</title>
+    <meta charset="UTF-8" />
+    <script type="text/javascript" charset="UTF-8" src="js/three.min.js"></script>
+    <script type="text/javascript" charset="UTF-8" src="libs/three/renderers/Projector.js"></script>
+    <script type="text/javascript" charset="UTF-8" src="libs/three/controls/TrackballControls.js"></script>
+    <script type="text/javascript" src="libs/util/Stats.js"></script>
+
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/util.js"></script>
+    <script type="text/javascript" src="js/09-02.js"></script>
+    <script type="text/javascript" src="libs/util/dat.gui.js"></script>
+    
+    <link rel="stylesheet" href="css/default.css">
+    <style>
+            .div-relative{position:relative; color:#000; border:1px solid #000; width:500px; height:400px}    
+            .div-a{ position:absolute; left:2px; top:50px; background:rgb(88, 164, 226); width:160px; height:120px; z-index:3000}
+            .div-op{ position:absolute; left:2px; top:200px; background:rgb(88, 164, 226); width:160px; height:120px; z-index:3000}
+    </style>
+</head>
+
+<div-relative>
+    <!-- Div which will hold the Output -->
+    <div id="webgl-output"></div>
+    <div id="result" class="div-a"></div>
+    <div class="div-op">
+        <input id="upRotationSpeed" type="button" onclick="click()" value="RotationSpeed +"/>
+        <input id="downRotationSpeed" type="button" onclick="click()" value="RotationSpeed -"/>
+    </div>
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+    (function () {
+        // contains the code for this example
+        init();
+    })();
+</script>
+
+</body>
+
+</html>
